@@ -99,52 +99,6 @@ function initThree() {
   camera = new THREE.OrthographicCamera(-width/2, width/2, height/2, -height/2, 1, 10);
   camera.position.z = 5;
 
-  // --- Add white outlined equilateral triangle star in the center ---
-  // Store star triangle meshes for animation
-  let starTriangles = [];
-  let starBaseVertices, h, starSize;
-  let starGroup = null;
-  let starTriangleSpeeds = [];
-  {
-    // --- Star: 4 equilateral triangles, rotated 0, 90, 180, 270 degrees ---
-    starSize = Math.min(width, height) * 0.60;
-    h = starSize * Math.sqrt(3) / 2;
-    starBaseVertices = [
-      [0, 2*h/3, 0],
-      [-starSize/2, -h/3, 0],
-      [starSize/2, -h/3, 0],
-      [0, 2*h/3, 0]
-    ];
-    function rotateVerts(verts, angleDeg) {
-      const angle = angleDeg * Math.PI / 180;
-      const cos = Math.cos(angle), sin = Math.sin(angle);
-      return verts.map(([x, y, z]) => [
-        x * cos - y * sin,
-        x * sin + y * cos,
-        z
-      ]);
-    }
-    // Use a group for the star so we can rotate it
-    starGroup = new THREE.Group();
-    const starAngles = [0, 180, 90, 270];
-    starTriangles = [];
-    // Assign different rotation speeds (radians per frame) for each triangle
-    starTriangleSpeeds = [0.5, -0.7, 1.1, -1.3];
-    for (const a of starAngles) {
-      const verts = rotateVerts(starBaseVertices, a).flat();
-      const geometry = new THREE.BufferGeometry();
-      geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(verts), 3));
-      const material = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2, transparent: true, opacity: 0.2 });
-      const triangle = new THREE.Line(geometry, material);
-      // Each triangle gets its own Object3D wrapper for independent rotation
-      const wrapper = new THREE.Object3D();
-      wrapper.add(triangle);
-      starGroup.add(wrapper);
-      starTriangles.push(wrapper);
-    }
-    scene.add(starGroup);
-  }
-
   // Spheres at ends of the "line"
   let baseLineLength = width * 0.2;
   let currentLineLength = baseLineLength;
@@ -257,16 +211,6 @@ function initThree() {
   const leftTrailPositions = Array.from({length: TRAIL_LENGTH}, () => ({x:0, y:0, z:0}));
   const rightTrailPositions = Array.from({length: TRAIL_LENGTH}, () => ({x:0, y:0, z:0}));
   function animate() {
-    // --- Star oscillation and rotation ---
-    if (starTriangles && starTriangles.length && starGroup) {
-      // Oscillate scale between 0.85 and 1.15
-      const scale = 1 + 0.15 * Math.sin(angle * 1.2);
-      starGroup.scale.set(scale, scale, 1);
-      // Each triangle rotates at its own speed
-      for (let i = 0; i < starTriangles.length; ++i) {
-        starTriangles[i].rotation.z = angle * starTriangleSpeeds[i];
-      }
-    }
     // --- Smooth color transition update ---
     if (colorTransition.progress < 1) {
       const now = performance.now();
