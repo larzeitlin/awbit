@@ -220,9 +220,17 @@
     const width = window.innerWidth;
     const height = Math.max(0, window.innerHeight - 140);
 
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-    //renderer.setClearColor(0x000000, 1);
+    renderer = new THREE.WebGLRenderer({ 
+      canvas, 
+      antialias: true, 
+      alpha: false, 
+      powerPreference: 'high-performance', 
+      preserveDrawingBuffer: false 
+    });
+    renderer.setPixelRatio(window.devicePixelRatio); // improve sharpness on HiDPI
     renderer.setSize(width, height, false);
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
 
     scene = new THREE.Scene();
     camera = new THREE.OrthographicCamera(-width/2, width/2, height/2, -height/2, 1, 10);
@@ -248,7 +256,7 @@
     scene.add(sphereRightMirror);
 
     // --- Sphere mesh trails ---
-    const TRAIL_LENGTH = 120;
+    const TRAIL_LENGTH = 150;
     let leftTrailMaterials = [];
     let rightTrailMaterials = [];
     let leftTrailMaterialsMirror = [];
