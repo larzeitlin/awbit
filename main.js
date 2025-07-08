@@ -51,6 +51,8 @@ svg.addEventListener('click', () => {
         // --- Fade logo opacity to 40% after glide ---
         logoContainer.style.transition = 'opacity 0.7s cubic-bezier(0.45,0,0.55,1)';
         logoContainer.style.opacity = '0.4';
+        // --- Show gallery view after glide ---
+        createGalleryView();
         pageBody.removeEventListener('transitionend', handler);
       }
     });
@@ -324,4 +326,65 @@ function initThree() {
     camera.updateProjectionMatrix();
     baseLineLength = width * 0.2;
   });
+}
+
+// --- Add gallery view overlay at bottom ---
+function createGalleryView() {
+  // Only add once
+  if (document.getElementById('gallery-view')) return;
+
+  const gallery = document.createElement('div');
+  gallery.id = 'gallery-view';
+  // Style the gallery overlay
+  Object.assign(gallery.style, {
+    position: 'fixed',
+    left: '0',
+    right: '0',
+    bottom: '0',
+    zIndex: '100',
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: '24px',
+    height: '30vh', // 30% of viewport height
+    minHeight: '180px',
+    padding: '0',
+    background: 'rgba(30,30,40,0.18)',
+    backdropFilter: 'blur(16px)',
+    borderTop: '1.5px solid rgba(255,255,255,0.7)',
+    boxShadow: '0 -2px 16px 0 rgba(0,0,0,0.08)',
+    pointerEvents: 'auto',
+    opacity: '0',
+    transform: 'translateY(100%)',
+    transition: 'opacity 0.6s cubic-bezier(0.45,0,0.55,1), transform 0.6s cubic-bezier(0.45,0,0.55,1)'
+  });
+
+  // Add gallery cells (e.g. 6 cells)
+  const cellCount = 6;
+  for (let i = 0; i < cellCount; i++) {
+    const cell = document.createElement('div');
+    Object.assign(cell.style, {
+      width: '96px',
+      height: '96px',
+      border: '2px solid rgba(255,255,255,0.75)', // 75% opacity
+      borderRadius: '12px',
+      background: 'rgba(255,255,255,0.08)',
+      boxSizing: 'border-box',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backdropFilter: 'blur(8px)',
+      transition: 'border-color 0.2s'
+    });
+    gallery.appendChild(cell);
+  }
+
+  document.body.appendChild(gallery);
+
+  // Trigger glide-in after a short delay to ensure transition
+  setTimeout(() => {
+    gallery.style.opacity = '1';
+    gallery.style.transform = 'translateY(0)';
+  }, 10);
 }
