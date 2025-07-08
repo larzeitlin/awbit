@@ -360,10 +360,36 @@ function createGalleryView() {
     transition: 'opacity 0.6s cubic-bezier(0.45,0,0.55,1), transform 0.6s cubic-bezier(0.45,0,0.55,1)'
   });
 
+  // Inject gallery cell hover styles if not already present
+  if (!document.getElementById('gallery-cell-hover-style')) {
+    const style = document.createElement('style');
+    style.id = 'gallery-cell-hover-style';
+    style.textContent = `
+      .gallery-cell {
+        transition: transform 0.18s cubic-bezier(0.45,0,0.55,1), box-shadow 0.18s cubic-bezier(0.45,0,0.55,1), border-color 0.2s;
+      }
+      .gallery-cell:hover {
+        transform: scale(1.11);
+        box-shadow: 0 0 24px 0 rgba(0,191,255,0.18), 0 0 48px 0 rgba(255,255,255,0.12);
+        z-index: 2;
+        border-color: #fff;
+      }
+    `;
+    document.head.appendChild(style);
+  }
   // Add gallery cells (e.g. 6 cells)
   const cellCount = 6;
+  const placeholderImages = [
+    'https://placehold.co/96x96/00bfff/ffffff?text=1',
+    'https://placehold.co/96x96/ff6a00/ffffff?text=2',
+    'https://placehold.co/96x96/ff00cc/ffffff?text=3',
+    'https://placehold.co/96x96/00ff99/ffffff?text=4',
+    'https://placehold.co/96x96/ffe600/000000?text=5',
+    'https://placehold.co/96x96/0055ff/ffffff?text=6'
+  ];
   for (let i = 0; i < cellCount; i++) {
     const cell = document.createElement('div');
+    cell.className = 'gallery-cell';
     Object.assign(cell.style, {
       width: '96px',
       height: '96px',
@@ -374,10 +400,215 @@ function createGalleryView() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      backdropFilter: 'blur(8px)',
-      transition: 'border-color 0.2s'
+      backdropFilter: 'blur(8px)'
+      // transition is now handled by CSS class
     });
+    // Add placeholder image
+    const img = document.createElement('img');
+    img.src = placeholderImages[i % placeholderImages.length];
+    img.alt = `Placeholder ${i+1}`;
+    img.style.width = '80px';
+    img.style.height = '80px';
+    img.style.borderRadius = '8px';
+    img.style.objectFit = 'cover';
+    cell.appendChild(img);
     gallery.appendChild(cell);
+
+    // --- Expanded view on click ---
+    cell.addEventListener('click', function(e) {
+      e.stopPropagation();
+      // Remove any existing expanded image
+      const oldExpanded = document.getElementById('gallery-expanded-image');
+      if (oldExpanded) oldExpanded.remove();
+      // Function to create or update expanded view responsively
+      function createOrUpdateExpanded() {
+        // Remove if already present (for update)
+        const prev = document.getElementById('gallery-expanded-image');
+        if (prev) prev.remove();
+        // Calculate available height: from below logo to above gallery
+        const logo = document.getElementById('logoContainer');
+        const gallery = document.getElementById('gallery-view');
+        let top = 0;
+        let bottom = 0;
+        if (logo) {
+          const logoRect = logo.getBoundingClientRect();
+          top = logoRect.bottom;
+        }
+        if (gallery) {
+          const galleryRect = gallery.getBoundingClientRect();
+          bottom = window.innerHeight - galleryRect.top;
+        }
+        const availableHeight = Math.max(0, window.innerHeight - top - bottom);
+        // Create expanded image container (full width, transparent, blur, gap)
+        const expandedContainer = document.createElement('div');
+        expandedContainer.id = 'gallery-expanded-image';
+        Object.assign(expandedContainer.style, {
+          position: 'fixed',
+          left: 0,
+          right: 0,
+          top: `${top}px`,
+          height: `${availableHeight}px`,
+          zIndex: 1001,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          pointerEvents: 'auto',
+          background: 'rgba(30,30,40,0.18)',
+          backdropFilter: 'blur(16px)',
+          border: 'none',
+          boxShadow: 'none',
+          animation: 'fadeInOverlay 0.18s cubic-bezier(0.45,0,0.55,1)'
+        });
+        // Expanded image
+        const expandedImg = document.createElement('img');
+        expandedImg.src = img.src;
+        expandedImg.alt = img.alt;
+        expandedImg.style.maxWidth = 'min(80vw, 480px)';
+        expandedImg.style.maxHeight = '90%';
+        expandedImg.style.borderRadius = '18px';
+        expandedImg.style.boxShadow = '0 8px 48px 0 rgba(0,191,255,0.18), 0 0 0 8px rgba(255,255,255,0.10)';
+        expandedImg.style.background = '#fff';
+        expandedImg.style.objectFit = 'contain';
+        expandedImg.style.transition = 'transform 0.18s cubic-bezier(0.45,0,0.55,1)';
+        expandedImg.style.transform = 'scale(1.04)';
+        expandedContainer.appendChild(expandedImg);
+        // --- Add fullscreen and close buttons ---
+        const buttonBar = document.createElement('div');
+        buttonBar.style.position = 'absolute';
+        buttonBar.style.top = '18px';
+        buttonBar.style.right = '32px';
+        buttonBar.style.display = 'flex';
+        buttonBar.style.gap = '12px';
+        buttonBar.style.zIndex = '2';
+        // Fullscreen button
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.innerHTML = '⛶';
+        fullscreenBtn.title = 'Fullscreen';
+        fullscreenBtn.style.fontSize = '22px';
+        fullscreenBtn.style.background = 'rgba(255,255,255,0.7)';
+        fullscreenBtn.style.border = 'none';
+        fullscreenBtn.style.borderRadius = '6px';
+        fullscreenBtn.style.padding = '6px 12px';
+        fullscreenBtn.style.cursor = 'pointer';
+        fullscreenBtn.style.boxShadow = '0 2px 8px 0 rgba(0,0,0,0.10)';
+        fullscreenBtn.style.transition = 'background 0.15s';
+        fullscreenBtn.addEventListener('mouseenter',()=>fullscreenBtn.style.background='rgba(255,255,255,1)');
+        fullscreenBtn.addEventListener('mouseleave',()=>fullscreenBtn.style.background='rgba(255,255,255,0.7)');
+        // Close button
+        const closeBtn = document.createElement('button');
+        closeBtn.innerHTML = '✕';
+        closeBtn.title = 'Close';
+        closeBtn.style.fontSize = '22px';
+        closeBtn.style.background = 'rgba(255,255,255,0.7)';
+        closeBtn.style.border = 'none';
+        closeBtn.style.borderRadius = '6px';
+        closeBtn.style.padding = '6px 12px';
+        closeBtn.style.cursor = 'pointer';
+        closeBtn.style.boxShadow = '0 2px 8px 0 rgba(0,0,0,0.10)';
+        closeBtn.style.transition = 'background 0.15s';
+        closeBtn.addEventListener('mouseenter',()=>closeBtn.style.background='rgba(255,255,255,1)');
+        closeBtn.addEventListener('mouseleave',()=>closeBtn.style.background='rgba(255,255,255,0.7)');
+        // Button actions
+        let isFullscreen = false;
+        fullscreenBtn.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          isFullscreen = !isFullscreen;
+          if (isFullscreen) {
+            // Hide logo and gallery, expand container
+            if (logo) logo.style.display = 'none';
+            if (gallery) {
+              gallery.style.display = 'none';
+              // Remove transforms and opacity to restore layout after fullscreen
+              gallery.style.transform = '';
+              gallery.style.opacity = '';
+            }
+            expandedContainer.style.top = '0';
+            expandedContainer.style.height = '100vh';
+            expandedContainer.style.background = 'rgba(30,30,40,0.28)';
+            expandedImg.style.maxWidth = 'min(96vw, 900px)';
+            expandedImg.style.maxHeight = '96vh';
+            fullscreenBtn.title = 'Exit Fullscreen';
+            fullscreenBtn.innerHTML = '⎚'; // Use a universally available icon for exit fullscreen
+          } else {
+            // Restore logo and gallery, restore container
+            if (logo) logo.style.display = '';
+            if (gallery) {
+              gallery.style.display = 'flex'; // Explicitly restore flex layout
+              // Force reflow to trigger transition
+              void gallery.offsetWidth;
+              gallery.style.transform = 'translateY(0)';
+              gallery.style.opacity = '1';
+            }
+            // Recalculate top/height in case of resize
+            const logoRect = logo ? logo.getBoundingClientRect() : {bottom:0};
+            const galleryRect = gallery ? gallery.getBoundingClientRect() : {top:window.innerHeight};
+            const newTop = logoRect.bottom;
+            const newBottom = window.innerHeight - galleryRect.top;
+            const newAvailableHeight = Math.max(0, window.innerHeight - newTop - newBottom);
+            expandedContainer.style.top = `${newTop}px`;
+            expandedContainer.style.height = `${newAvailableHeight}px`;
+            expandedContainer.style.background = 'rgba(30,30,40,0.18)';
+            expandedImg.style.maxWidth = 'min(80vw, 480px)';
+            expandedImg.style.maxHeight = '90%';
+            fullscreenBtn.title = 'Fullscreen';
+            fullscreenBtn.innerHTML = '⛶';
+          }
+        });
+        closeBtn.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          // Always restore logo and gallery on close
+          if (logo) logo.style.display = '';
+          if (gallery) {
+            gallery.style.display = 'flex'; // Explicitly restore flex layout
+            void gallery.offsetWidth;
+            gallery.style.transform = 'translateY(0)';
+            gallery.style.opacity = '1';
+          }
+          expandedContainer.remove();
+          window.removeEventListener('keydown', escHandler);
+          window.removeEventListener('resize', createOrUpdateExpanded);
+        });
+        buttonBar.appendChild(fullscreenBtn);
+        buttonBar.appendChild(closeBtn);
+        expandedContainer.appendChild(buttonBar);
+        // Close on click outside image
+        function closeExpanded(ev) {
+          if (ev.target === expandedContainer) {
+            if (logo) logo.style.display = '';
+            if (gallery) {
+              gallery.style.display = 'flex'; // Explicitly restore flex layout
+              void gallery.offsetWidth;
+              gallery.style.transform = 'translateY(0)';
+              gallery.style.opacity = '1';
+            }
+            expandedContainer.remove();
+            window.removeEventListener('keydown', escHandler);
+            window.removeEventListener('resize', createOrUpdateExpanded);
+          }
+        }
+        expandedContainer.addEventListener('click', closeExpanded);
+        // Close on Escape
+        function escHandler(ev) {
+          if (ev.key === 'Escape') {
+            if (logo) logo.style.display = '';
+            if (gallery) {
+              gallery.style.display = 'flex'; // Explicitly restore flex layout
+              void gallery.offsetWidth;
+              gallery.style.transform = 'translateY(0)';
+              gallery.style.opacity = '1';
+            }
+            expandedContainer.remove();
+            window.removeEventListener('keydown', escHandler);
+            window.removeEventListener('resize', createOrUpdateExpanded);
+          }
+        }
+        window.addEventListener('keydown', escHandler);
+        // Remove and recreate on resize for responsiveness
+        window.addEventListener('resize', createOrUpdateExpanded);
+        document.body.appendChild(expandedContainer);
+      }
+      createOrUpdateExpanded();
+    });
   }
 
   document.body.appendChild(gallery);
