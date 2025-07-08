@@ -459,6 +459,21 @@ function createGalleryView() {
           boxShadow: 'none',
           animation: 'fadeInOverlay 0.18s cubic-bezier(0.45,0,0.55,1)'
         });
+        // Add fade-out mask for top and bottom edge (not in fullscreen)
+        const fadeMask = document.createElement('div');
+        fadeMask.style.position = 'absolute';
+        fadeMask.style.left = '0';
+        fadeMask.style.right = '0';
+        fadeMask.style.top = '0';
+        fadeMask.style.bottom = '0';
+        fadeMask.style.pointerEvents = 'none';
+        fadeMask.style.zIndex = '1';
+        fadeMask.style.maskImage =
+          'linear-gradient(to bottom, transparent 0px, rgba(0,0,0,0.7) 32px, rgba(0,0,0,1) 64px, rgba(0,0,0,1) calc(100% - 64px), rgba(0,0,0,0.7) calc(100% - 32px), transparent 100%)';
+        fadeMask.style.webkitMaskImage = fadeMask.style.maskImage;
+        fadeMask.style.background = 'inherit';
+        expandedContainer.appendChild(fadeMask);
+
         // Expanded image
         const expandedImg = document.createElement('img');
         expandedImg.src = img.src;
@@ -529,6 +544,8 @@ function createGalleryView() {
             expandedImg.style.maxHeight = '96vh';
             fullscreenBtn.title = 'Exit Fullscreen';
             fullscreenBtn.innerHTML = '⎚'; // Use a universally available icon for exit fullscreen
+            // In fullscreen mode, remove the fade mask
+            if (fadeMask.parentNode) fadeMask.parentNode.removeChild(fadeMask);
           } else {
             // Restore logo and gallery, restore container
             if (logo) logo.style.display = '';
@@ -552,6 +569,8 @@ function createGalleryView() {
             expandedImg.style.maxHeight = '90%';
             fullscreenBtn.title = 'Fullscreen';
             fullscreenBtn.innerHTML = '⛶';
+            // In non-fullscreen mode, restore the fade mask
+            if (!expandedContainer.contains(fadeMask)) expandedContainer.appendChild(fadeMask);
           }
         });
         closeBtn.addEventListener('click', (ev) => {
