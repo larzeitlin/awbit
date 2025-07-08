@@ -38,8 +38,6 @@ svg.addEventListener('animationend', () => {
 const logoContainer = document.getElementById('logoContainer');
 const bgHalfTop = document.getElementById('bgHalfTop');
 const pageBody = document.getElementById('pageBody');
-const logoCenterLarge = document.getElementById('logoCenterLarge');
-const logoSvgLarge = document.getElementById('logo-svg-large');
 let atTop = false;
 svg.addEventListener('click', () => {
   if (!atTop) {
@@ -53,74 +51,11 @@ svg.addEventListener('click', () => {
         // --- Fade logo opacity to 40% after glide ---
         logoContainer.style.transition = 'opacity 0.7s cubic-bezier(0.45,0,0.55,1)';
         logoContainer.style.opacity = '0.4';
-        // Show large centered logo
-        logoCenterLarge.style.display = 'block';
         pageBody.removeEventListener('transitionend', handler);
       }
     });
     atTop = true;
   }
-});
-
-// --- Central logo rotation state ---
-let centralLogoAngle = 0;
-let centralLogoAnimating = false;
-let centralLogoAnimStart = 0;
-let centralLogoAnimFrom = 0;
-let centralLogoAnimTo = 0;
-const centralLogoDuration = 500; // ms
-
-function setCentralLogoRotation(angle) {
-  const indicator = document.getElementById('logo-indicator-large');
-  const indicatorOutline = document.getElementById('logo-indicator-outline-large');
-  const indicatorTip = document.getElementById('logo-indicator-tip-large');
-  const cx = 140, cy = 140;
-  if (indicator && indicatorOutline) {
-    indicator.setAttribute('transform', `rotate(${angle} ${cx} ${cy})`);
-    indicatorOutline.setAttribute('transform', `rotate(${angle} ${cx} ${cy})`);
-  }
-  // Move the tip circle to the end of the indicator after rotation
-  if (indicatorTip) {
-    // The tip is originally at (140,40), radius 12, rotate around (140,140)
-    const rad = (angle * Math.PI) / 180;
-    const dx = 0;
-    const dy = -100;
-    const x = cx + dx * Math.cos(rad) - dy * Math.sin(rad);
-    const y = cy + dx * Math.sin(rad) + dy * Math.cos(rad);
-    indicatorTip.setAttribute('cx', x);
-    indicatorTip.setAttribute('cy', y);
-  }
-}
-setCentralLogoRotation(0);
-
-function animateCentralLogoRotation() {
-  if (!centralLogoAnimating) return;
-  const now = performance.now();
-  const t = Math.min(1, (now - centralLogoAnimStart) / centralLogoDuration);
-  // cubic-bezier(0.45,0,0.55,1) approximation
-  const ease = t < 0.5
-    ? 4 * t * t * t
-    : 1 - Math.pow(-2 * t + 2, 3) / 2;
-  const angle = centralLogoAnimFrom + (centralLogoAnimTo - centralLogoAnimFrom) * ease;
-  setCentralLogoRotation(angle);
-  if (t < 1) {
-    requestAnimationFrame(animateCentralLogoRotation);
-  } else {
-    setCentralLogoRotation(centralLogoAnimTo);
-    centralLogoAnimating = false;
-    centralLogoAngle = ((centralLogoAnimTo % 360) + 360) % 360;
-  }
-}
-
-// Only rotate central logo on its own click, with animation
-logoCenterLarge.addEventListener('click', function(e) {
-  e.stopPropagation();
-  if (centralLogoAnimating) return;
-  centralLogoAnimFrom = centralLogoAngle;
-  centralLogoAnimTo = centralLogoAngle + 90;
-  centralLogoAnimStart = performance.now();
-  centralLogoAnimating = true;
-  requestAnimationFrame(animateCentralLogoRotation);
 });
 
 // --- Three.js setup ---
