@@ -63,24 +63,7 @@
       <circle cx="40" cy="140" r="28" fill="white" stroke="black" stroke-width="4"/>
     </svg>
   </div>
-  <div id="pageBody" style="
-    position: fixed;
-    left: 0;
-    bottom: 0;
-    width: 100vw;
-    height: calc(100vh);
-    background: #000000;
-    z-index: 1;
-    box-shadow: 0 -2px 16px rgba(0,0,0,0.04);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    pointer-events: auto;
-    transform: translateY(100%);
-    transition: transform 1s cubic-bezier(0.45,0,0.55,1);
-    font-family: Tahoma, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-  ">
+  <div id="pageBody">
     <canvas id="three-canvas" style="width:100vw; height:100%; display:block; background:#000;"></canvas>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.min.js"></script>
