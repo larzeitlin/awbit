@@ -113,6 +113,38 @@
 
     </svg>
   </div>
+  <!-- Add large centered logo, initially hidden -->
+  <div id="logoCenterLarge" style="
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 3;
+    pointer-events: auto;
+    display: none;
+    opacity: 0.2;
+  ">
+    <svg id="logo-svg-large" width="280" height="280">
+      <!-- Outer circle with white outline -->
+      <circle cx="140" cy="140" r="104" fill="none" stroke="white" stroke-width="12"/>
+      <circle cx="140" cy="140" r="100" fill="none" stroke="black" stroke-width="8"/>
+      <!-- Center circle with white outline -->
+      <circle cx="140" cy="140" r="44" fill="none" stroke="white" stroke-width="12"/>
+      <circle cx="140" cy="140" r="40" fill="black"/>
+      <!-- Indicator line to north point with white outline -->
+      <line id="logo-indicator-outline-large" x1="140" y1="140" x2="140" y2="40" stroke="white" stroke-width="14"/>
+      <line id="logo-indicator-large" x1="140" y1="140" x2="140" y2="40" stroke="black" stroke-width="6"/>
+      <!-- Indicator attachment circle (white outline, black fill) -->
+      <circle cx="140" cy="140" r="12" fill="black" stroke="white" stroke-width="4"/>
+      <!-- Indicator pointing end circle (white outline, black fill) -->
+      <circle id="logo-indicator-tip-large" cx="140" cy="40" r="12" fill="black" stroke="white" stroke-width="4"/>
+      <!-- Cardinal point circles -->
+      <circle cx="140" cy="40" r="28" fill="white" stroke="black" stroke-width="4"/>
+      <circle cx="240" cy="140" r="28" fill="white" stroke="black" stroke-width="4"/>
+      <circle cx="140" cy="240" r="28" fill="white" stroke="black" stroke-width="4"/>
+      <circle cx="40" cy="140" r="28" fill="white" stroke="black" stroke-width="4"/>
+    </svg>
+  </div>
   <div id="pageBody" style="
     position: fixed;
     left: 0;
@@ -175,6 +207,8 @@
   const logoContainer = document.getElementById('logoContainer');
   const bgHalfTop = document.getElementById('bgHalfTop');
   const pageBody = document.getElementById('pageBody');
+  const logoCenterLarge = document.getElementById('logoCenterLarge');
+  const logoSvgLarge = document.getElementById('logo-svg-large');
   let atTop = false;
   svg.addEventListener('click', () => {
     if (!atTop) {
@@ -188,11 +222,74 @@
           // --- Fade logo opacity to 40% after glide ---
           logoContainer.style.transition = 'opacity 0.7s cubic-bezier(0.45,0,0.55,1)';
           logoContainer.style.opacity = '0.4';
+          // Show large centered logo
+          logoCenterLarge.style.display = 'block';
           pageBody.removeEventListener('transitionend', handler);
         }
       });
       atTop = true;
     }
+  });
+
+  // --- Central logo rotation state ---
+  let centralLogoAngle = 0;
+  let centralLogoAnimating = false;
+  let centralLogoAnimStart = 0;
+  let centralLogoAnimFrom = 0;
+  let centralLogoAnimTo = 0;
+  const centralLogoDuration = 500; // ms
+
+  function setCentralLogoRotation(angle) {
+    const indicator = document.getElementById('logo-indicator-large');
+    const indicatorOutline = document.getElementById('logo-indicator-outline-large');
+    const indicatorTip = document.getElementById('logo-indicator-tip-large');
+    const cx = 140, cy = 140;
+    if (indicator && indicatorOutline) {
+      indicator.setAttribute('transform', `rotate(${angle} ${cx} ${cy})`);
+      indicatorOutline.setAttribute('transform', `rotate(${angle} ${cx} ${cy})`);
+    }
+    // Move the tip circle to the end of the indicator after rotation
+    if (indicatorTip) {
+      // The tip is originally at (140,40), radius 12, rotate around (140,140)
+      const rad = (angle * Math.PI) / 180;
+      const dx = 0;
+      const dy = -100;
+      const x = cx + dx * Math.cos(rad) - dy * Math.sin(rad);
+      const y = cy + dx * Math.sin(rad) + dy * Math.cos(rad);
+      indicatorTip.setAttribute('cx', x);
+      indicatorTip.setAttribute('cy', y);
+    }
+  }
+  setCentralLogoRotation(0);
+
+  function animateCentralLogoRotation() {
+    if (!centralLogoAnimating) return;
+    const now = performance.now();
+    const t = Math.min(1, (now - centralLogoAnimStart) / centralLogoDuration);
+    // cubic-bezier(0.45,0,0.55,1) approximation
+    const ease = t < 0.5
+      ? 4 * t * t * t
+      : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    const angle = centralLogoAnimFrom + (centralLogoAnimTo - centralLogoAnimFrom) * ease;
+    setCentralLogoRotation(angle);
+    if (t < 1) {
+      requestAnimationFrame(animateCentralLogoRotation);
+    } else {
+      setCentralLogoRotation(centralLogoAnimTo);
+      centralLogoAnimating = false;
+      centralLogoAngle = ((centralLogoAnimTo % 360) + 360) % 360;
+    }
+  }
+
+  // Only rotate central logo on its own click, with animation
+  logoCenterLarge.addEventListener('click', function(e) {
+    e.stopPropagation();
+    if (centralLogoAnimating) return;
+    centralLogoAnimFrom = centralLogoAngle;
+    centralLogoAnimTo = centralLogoAngle + 90;
+    centralLogoAnimStart = performance.now();
+    centralLogoAnimating = true;
+    requestAnimationFrame(animateCentralLogoRotation);
   });
 
   // --- Three.js setup ---
@@ -235,6 +332,52 @@
     scene = new THREE.Scene();
     camera = new THREE.OrthographicCamera(-width/2, width/2, height/2, -height/2, 1, 10);
     camera.position.z = 5;
+
+    // --- Add white outlined equilateral triangle star in the center ---
+    // Store star triangle meshes for animation
+    let starTriangles = [];
+    let starBaseVertices, h, starSize;
+    let starGroup = null;
+    let starTriangleSpeeds = [];
+    {
+      // --- Star: 4 equilateral triangles, rotated 0, 90, 180, 270 degrees ---
+      starSize = Math.min(width, height) * 0.60;
+      h = starSize * Math.sqrt(3) / 2;
+      starBaseVertices = [
+        [0, 2*h/3, 0],
+        [-starSize/2, -h/3, 0],
+        [starSize/2, -h/3, 0],
+        [0, 2*h/3, 0]
+      ];
+      function rotateVerts(verts, angleDeg) {
+        const angle = angleDeg * Math.PI / 180;
+        const cos = Math.cos(angle), sin = Math.sin(angle);
+        return verts.map(([x, y, z]) => [
+          x * cos - y * sin,
+          x * sin + y * cos,
+          z
+        ]);
+      }
+      // Use a group for the star so we can rotate it
+      starGroup = new THREE.Group();
+      const starAngles = [0, 180, 90, 270];
+      starTriangles = [];
+      // Assign different rotation speeds (radians per frame) for each triangle
+      starTriangleSpeeds = [0.5, -0.7, 1.1, -1.3];
+      for (const a of starAngles) {
+        const verts = rotateVerts(starBaseVertices, a).flat();
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(verts), 3));
+        const material = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2, transparent: true, opacity: 0.2 });
+        const triangle = new THREE.Line(geometry, material);
+        // Each triangle gets its own Object3D wrapper for independent rotation
+        const wrapper = new THREE.Object3D();
+        wrapper.add(triangle);
+        starGroup.add(wrapper);
+        starTriangles.push(wrapper);
+      }
+      scene.add(starGroup);
+    }
 
     // Spheres at ends of the "line"
     let baseLineLength = width * 0.2;
@@ -348,6 +491,16 @@
     const leftTrailPositions = Array.from({length: TRAIL_LENGTH}, () => ({x:0, y:0, z:0}));
     const rightTrailPositions = Array.from({length: TRAIL_LENGTH}, () => ({x:0, y:0, z:0}));
     function animate() {
+      // --- Star oscillation and rotation ---
+      if (starTriangles && starTriangles.length && starGroup) {
+        // Oscillate scale between 0.85 and 1.15
+        const scale = 1 + 0.15 * Math.sin(angle * 1.2);
+        starGroup.scale.set(scale, scale, 1);
+        // Each triangle rotates at its own speed
+        for (let i = 0; i < starTriangles.length; ++i) {
+          starTriangles[i].rotation.z = angle * starTriangleSpeeds[i];
+        }
+      }
       // --- Smooth color transition update ---
       if (colorTransition.progress < 1) {
         const now = performance.now();
